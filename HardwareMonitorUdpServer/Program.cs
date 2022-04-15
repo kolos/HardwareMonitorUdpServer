@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
@@ -24,16 +25,15 @@ namespace HardwareMonitorUdpServer
     public class Monitor
     {
         private Computer _computer;
-        string[] _monitored_ids;
-        int _value_idx;
+        Dictionary<string, int> _monitored_ids;
         float[] _values;
         string _udp_client_ip;
         int _udp_client_port = 35432;
-        public Monitor(string[] monitored_ids, string clientIp)
+        public Monitor(Dictionary<string, int> monitored_ids, string clientIp)
         {
             _monitored_ids = monitored_ids;
             _udp_client_ip = clientIp;
-            _values = new float[monitored_ids.Length];
+            _values = new float[monitored_ids.Max(x=>x.Value) + 1];
 
             _computer = new Computer
             {
@@ -62,10 +62,10 @@ namespace HardwareMonitorUdpServer
         }
         private void StoreSensorFiltered(ISensor sensor)
         {
-            if(_monitored_ids.Contains(sensor.Identifier.ToString()))
+            // Console.WriteLine($"{sensor.Identifier.ToString()} {sensor.Name}:  { sensor.Value }");
+            if (_monitored_ids.ContainsKey(sensor.Identifier.ToString()))
             {
-                // Console.WriteLine($"{_value_idx}: {sensor.Identifier.ToString()} {sensor.Name}");
-                _values[_value_idx++] = (float)sensor.Value;
+                _values[_monitored_ids[sensor.Identifier.ToString()]] = (float)sensor.Value;
             }
         }
 
@@ -86,7 +86,6 @@ namespace HardwareMonitorUdpServer
 
         private void StoreMonitoredSensors()
         {
-            _value_idx = 0;
             foreach (IHardware hardware in _computer.Hardware)
             {
                 foreach (IHardware subhardware in hardware.SubHardware)
@@ -110,20 +109,21 @@ namespace HardwareMonitorUdpServer
     {
         static void Main(string[] args)
         {
-            var monitored_ids = new string[]
+            var monitored_ids = new Dictionary<string, int>()
             {
-                "/lpc/nct6795d/fan/1",
-                "/amdcpu/0/load/0",
-                "/amdcpu/0/temperature/2",
-                "/amdcpu/0/power/1",
-                "/amdcpu/0/power/2",
-                "/ram/data/0",
-                "/gpu-amd/0/factor/0",
-                "/gpu-amd/0/smalldata/0",
-                "/gpu-amd/0/smalldata/1",
-                "/gpu-amd/0/load/0",
-                "/nvme/0/load/33",
-                "/nic/{A35E2A4C-9759-4062-A811-FD3CE8682147}/throughput/8",
+                { "/lpc/nct6795d/fan/1", 0 },
+                { "/amdcpu/0/load/0", 1 },
+                { "/amdcpu/0/temperature/2", 2 },
+                { "/amdcpu/0/power/0", 3 },
+                { "/amdcpu/0/power/1", 4 },
+                { "/ram/data/0", 5 },
+                { "/gpu-amd/0/factor/0", 6 },
+                { "/gpu-amd/0/smalldata/0", 7 },
+                { "/gpu-amd/0/smalldata/1", 8 },
+                { "/gpu-amd/0/load/0", 9 },
+                { "/nvme/0/load/33", 10 },
+                { "/hdd/0/load/33", 10 },
+                { "/nic/{A35E2A4C-9759-4062-A811-FD3CE8682147}/throughput/8", 11 },
             };
 
             var monitor = new Monitor(monitored_ids, "192.168.0.128");
