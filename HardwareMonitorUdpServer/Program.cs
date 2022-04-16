@@ -76,11 +76,17 @@ namespace HardwareMonitorUdpServer
 
         private void SendValues()
         {
-            using (UdpClient udp = new UdpClient(_udp_client_ip, _udp_client_port))
+            try
             {
-                byte[] buff = new byte[_values.Length * sizeof(float)];
-                Buffer.BlockCopy(_values, 0, buff, 0, _values.Length * sizeof(float));
-                udp.Send(buff, buff.Length);
+                using (UdpClient udp = new UdpClient(_udp_client_ip, _udp_client_port))
+                {
+                    byte[] buff = new byte[_values.Length * sizeof(float)];
+                    Buffer.BlockCopy(_values, 0, buff, 0, _values.Length * sizeof(float));
+                    udp.Send(buff, buff.Length);
+                }
+            } catch(SocketException)
+            {
+                // Network error, try again
             }
         }
 
